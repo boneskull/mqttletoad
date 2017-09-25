@@ -53,7 +53,7 @@ How do we know to execute `quux()`?
 
 We need something like a *router* (think [express](https://www.npmjs.com/package/express)) to be able to match the topic to the proper listener.
 
-[EventEmitter2](https://npm.im/eventemitter2) does exactly this by supporting wildcards in event names.  It's flexible, so you *don't* need to use Express-style routes (`foo/:param/baz`), which is what several other libraries tacking the same problem have done.
+[EventEmitter2](https://npm.im/eventemitter2) does exactly this by supporting wildcards in event names.  It's flexible, so you *don't* need to use Express-style routes (`foo/:param/baz`), which is what several other libraries tackling the same problem have done.
 
 What's better is that `EventEmitter`s are standardized.  They are easy to consume.  Think [RxJs](https://npm.im/rxjs)'s `Observable.fromEvent()`.  This should help those using a "reactive" programming model.
 
