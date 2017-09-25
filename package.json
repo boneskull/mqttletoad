@@ -1,0 +1,56 @@
+{
+  "name": "mqttletoad",
+  "version": "0.0.0",
+  "description": "Black magic on top of MQTT.js",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "mocha 'test/*.spec.js'",
+    "lint": "eslint lib test",
+    "pretest": "npm run lint"
+  },
+  "keywords": [
+    "mqtt",
+    "pub",
+    "publish",
+    "sub",
+    "subscription",
+    "helper",
+    "pubsub",
+    "event",
+    "message",
+    "wrapper",
+    "promise",
+    "router"
+  ],
+  "author": "Christopher Hiller <boneskull@boneskull.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "eventemitter2": "^4.1.2",
+    "pify": "^3.0.0",
+    "mqtt": "^2.0.0"
+  },
+  "homepage": "https://github.com/boneskull/mqttletoad",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boneskull/mqttltoad.git"
+  },
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {
+    "eslint": "^4.7.2",
+    "eslint-config-semistandard": "^11.0.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-node": "^5.1.1",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "get-port": "^3.2.0",
+    "mocha": "^3.5.3",
+    "mqtt-connection": "^3.1.0",
+    "unexpected": "^10.35.0"
+  },
+  "engines": {
+    "node": ">=6.5"
+  }
+}
