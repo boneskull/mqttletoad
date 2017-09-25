@@ -1,6 +1,6 @@
 {
   "name": "mqttletoad",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Black magic on top of MQTT.js",
   "main": "lib/index.js",
   "scripts": {
