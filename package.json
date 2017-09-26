@@ -1,12 +1,14 @@
 {
   "name": "mqttletoad",
-  "version": "0.1.0",
+  "version": "0.0.0-development",
   "description": "Black magic on top of MQTT.js",
   "main": "lib/index.js",
   "scripts": {
     "test": "mocha 'test/*.spec.js'",
     "lint": "eslint lib test",
-    "pretest": "npm run lint"
+    "pretest": "npm run lint",
+    "test:coverage": "nyc npm run test",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "keywords": [
     "mqtt",
@@ -29,15 +31,11 @@
     "pify": "^3.0.0",
     "mqtt": "^2.0.0"
   },
-  "homepage": "https://github.com/boneskull/mqttletoad",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/boneskull/mqttltoad.git"
-  },
   "files": [
     "lib"
   ],
   "devDependencies": {
+    "coveralls": "^2.13.1",
     "eslint": "^4.7.2",
     "eslint-config-semistandard": "^11.0.0",
     "eslint-config-standard": "^10.2.1",
@@ -48,9 +46,23 @@
     "get-port": "^3.2.0",
     "mocha": "^3.5.3",
     "mqtt-connection": "^3.1.0",
-    "unexpected": "^10.35.0"
+    "nyc": "^11.2.1",
+    "unexpected": "^10.35.0",
+    "semantic-release": "^8.0.3"
   },
   "engines": {
     "node": ">=6.5"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/boneskull/mqttltoad/issues"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boneskull/mqttletoad.git"
+  },
+  "homepage": "https://github.com/boneskull/mqttletoad#readme"
 }
