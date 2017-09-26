@@ -2,7 +2,7 @@
 
 ![mqttload logo](https://cldup.com/n0IMRXCXZz.png)
 
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+[![Coveralls](https://img.shields.io/coveralls/boneskull/mqttletoad.svg?style=flat-square)](https://coveralls.io/github/boneskull/mqttletoad) [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg?style=flat-square)](https://github.com/semantic-release/semantic-release) [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
 > Black magic on top of MQTT.js
 
