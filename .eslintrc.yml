@@ -1,8 +1,15 @@
 extends:
   - semistandard
+  - prettier
+plugins:
+  - prettier
 parserOptions:
   sourceType: script
 rules:
+  prettier/prettier:
+    - error
+    - singleQuote: true
+      bracketSpacing: false
   strict:
     - error
     - safe

@@ -138,9 +138,9 @@ Basically it's [async-mqtt](https://npm.im/async-mqtt) except:
 
 ## Roadmap
 
-- Use ES modules so it can work in the browser (the whole point of this was to use it in the browser...)
-- Not sure if I love `emit()` working like it does
-- Probably use [prettier](https://npm.im/prettier) 
+- [ ] Use ES modules so it can work in the browser (the whole point of this was to use it in the browser...)
+- [ ] Reconsider `emit()` `Proxy`
+- [x] Probably use [prettier](https://npm.im/prettier) 
  
 ## Maintainers
 
