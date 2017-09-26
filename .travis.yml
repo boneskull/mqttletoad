@@ -14,3 +14,6 @@ branches:
 dist: trusty
 sudo: false
 script: npm run test:coverage
+cache:
+  directories:
+    - ~/.npm
