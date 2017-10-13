@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const {Server} = require('net');
 const MqttConnection = require('mqtt-connection');
 
@@ -17,31 +18,45 @@ class Broker extends Server {
 
 exports.Broker = Broker;
 
-exports.createBroker = () =>
-  new Broker(client => {
+exports.createBroker = async (port, transformers = {}) => {
+  transformers = _.defaults(transformers, {
+    connack(...args) {
+      return {returnCode: 0};
+    },
+    subscribe(packet) {
+      return {
+        messageId: packet.messageId,
+        granted: packet.subscriptions.map(e => e.qos)
+      };
+    },
+    pingreq: _.noop,
+    unsubscribe: _.identity,
+    pubrel: _.identity,
+    pubrec: _.identity,
+    publish: _.identity
+  });
+  const broker = new Broker(client => {
     client
-      .on('connect', () => {
-        client.connack({returnCode: 0});
+      .on('connect', (...args) => {
+        client.connack(transformers.connack(...args));
       })
-      .on('pingreq', () => {
-        client.pingresp();
+      .on('pingreq', (...args) => {
+        client.pingresp(transformers.pingreq(...args));
       })
-      .on('subscribe', packet => {
-        client.suback({
-          messageId: packet.messageId,
-          granted: packet.subscriptions.map(e => e.qos)
-        });
+      .on('subscribe', (...args) => {
+        client.suback(transformers.subscribe(...args));
       })
-      .on('unsubscribe', packet => {
-        client.unsuback(packet);
+      .on('unsubscribe', (...args) => {
+        client.unsuback(transformers.unsubscribe(...args));
       })
-      .on('pubrel', packet => {
-        client.pubcomp(packet);
+      .on('pubrel', (...args) => {
+        client.pubcomp(transformers.pubrel(...args));
       })
-      .on('pubrec', packet => {
-        client.pubrel(packet);
+      .on('pubrec', (...args) => {
+        client.pubrel(transformers.pubrec(...args));
       })
       .on('publish', packet => {
+        packet = transformers.publish(packet);
         process.nextTick(() => {
           client.publish(packet);
           switch (packet.qos) {
@@ -69,3 +84,13 @@ exports.createBroker = () =>
         client.destroy();
       });
   });
+  broker.transformers = transformers;
+  return new Promise((resolve, reject) => {
+    broker.listen(port, err => {
+      if (err) {
+        return reject(err);
+      }
+      resolve(broker);
+    });
+  });
+};

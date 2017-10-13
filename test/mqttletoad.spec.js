@@ -11,66 +11,98 @@ describe('mqttletoad', function() {
   let broker;
   let port;
 
-  before(async function() {
-    port = await getPort();
-  });
+  describe('connect()', function() {
+    describe('upon first connection', function() {
+      let promise;
 
-  beforeEach(async function() {
-    broker = createBroker();
-    return new Promise((resolve, reject) => {
-      broker.listen(port, err => {
-        if (err) {
-          return reject(err);
-        }
-        resolve();
+      beforeEach(async function() {
+        port = await getPort();
+        broker = await createBroker(port);
+        promise = connect(`mqtt://localhost:${port}`);
+      });
+
+      afterEach(function(done) {
+        promise.then(client => client.end()).then(() => {
+          broker.close(done);
+        });
+      });
+
+      it('should resolve with the wrapped MqttClient once connected', async function() {
+        return expect(
+          promise,
+          'when fulfilled',
+          expect.it('to be a', MqttClient)
+        );
+      });
+
+      it('should not allow an invalid message to be published', async function() {
+        const client = await promise;
+        return expect(client.publish('foo/bar', new Date()), 'to be rejected');
+      });
+
+      it('should assign `sessionPresent` property', async function() {
+        return expect(
+          promise,
+          'when fulfilled',
+          expect.it('to have property', 'sessionPresent', false)
+        );
       });
     });
-  });
 
-  afterEach(function(done) {
-    broker.close(done);
-  });
+    describe('upon subsequent connections', function() {
+      let client;
 
-  describe('connect()', function() {
-    let promise;
+      beforeEach(async function() {
+        port = await getPort();
+        broker = await createBroker(port);
+        client = await connect(`mqtt://localhost:${port}`);
+        broker.transformers.connack = _ => ({
+          returnCode: 0,
+          sessionPresent: true
+        });
+        client.stream.end();
+        // at this point, it should automatically reconnect
+      });
 
-    beforeEach(function() {
-      promise = connect(`mqtt://localhost:${port}`);
-    });
+      afterEach(function(done) {
+        client.end().then(() => {
+          broker.close(done);
+        });
+      });
 
-    afterEach(async function() {
-      const client = await promise;
-      await client.end();
-    });
-
-    it('should resolve with the wrapped MqttClient once connected', async function() {
-      return expect(
-        promise,
-        'when fulfilled',
-        expect.it('to be a', MqttClient)
-      );
-    });
-
-    it('should not allow an invalid message to be published', async function() {
-      const client = await promise;
-      return expect(client.publish('foo/bar', new Date()), 'to be rejected');
+      it('should update `sessionPresent` accordingly', function(done) {
+        client.once('connect', () => {
+          expect(client.sessionPresent, 'to be', true);
+          done();
+        });
+      });
     });
   });
 
   describe('mqttletoad client', function() {
     let client;
+    let port;
+    let broker;
 
     beforeEach(async function() {
+      port = await getPort();
+      broker = await createBroker(port);
       client = await connect(`mqtt://localhost:${port}`);
     });
 
-    afterEach(async function() {
-      return client.end();
+    afterEach(function(done) {
+      client.end().then(() => {
+        broker.close(done);
+      });
     });
 
     describe('publish()', function() {
       it('should reject if non-string or non-Buffer value', async function() {
-        return expect(client.publish('foo', new Date()), 'to be rejected');
+        return expect(
+          client.publish('foo', new Date()),
+          'to be rejected with',
+          TypeError
+        );
       });
 
       describe('default QoS (0)', function() {
