@@ -59,7 +59,7 @@ What's better is that `EventEmitter`s are standardized.  They are easy to consum
 
 ### Promise Support
 
-[async-mqtt](https://npm.im/async-mqtt) does the same thing.  I wanted it.
+[async-mqtt](https://npm.im/async-mqtt) does the same thing here--more or less.
 
 ### WONTFIX: Message Formats
 
@@ -95,7 +95,7 @@ client.on('radscript/4ever/format/+', (buf, {topic})=> {
 
 ## Install
 
-**Node.js v6.5 or greater required**.
+**Node.js v7.0.0 or greater required**.
 
 ```bash
 $ npm install mqttletoad
@@ -104,43 +104,44 @@ $ npm install mqttletoad
 ## Usage
 
 ```js
-async function connect() {
-  const toad = require('mqttletoad');
-  const client = await toad.connect('wxs://test.mosquitto.org')
-  // a "real" `MqttClient` event.  these are whitelisted
-  client.on('disconnect', () => {
-    console.warn('disconnected; reconnecting...');
-  })
-    .on('winken/+/nod', (buf, packet) => {
-      // an MQTT event
-      console.log(`topic: "${packet.topic}", message: "${String(buf)}"`);
-      }, {qos: 1})
-    .on('suback', ({topic}) => {
-      // another "real" (non-MQTT) event
-      console.log(`subscribed to ${topic}`);
-    });
+const toad = require('mqttletoad');
+
+const myfunc = async () => {
+  const client = await toad.connect('wss://test.mosquitto.org');
   
-  // note this breaks the `EventEmitter#emit` contract.  this might change!
-  await client.emit('phi/slamma/jamma', 'go local sports team', {qos: 2});
+  client.on('disconnect', () => {
+    console.warn('client disconnected');
+  })
+  .on('offline', () => {
+    console.warn('client offline; reconnecting...');
+  });
+  
+  // yes, `buf` is still a Buffer.
+  const suback = await client.subscribe('winken/+/nod', (buf, packet) => {
+    console.log(`topic: "${packet.topic}", message: "${String(buf)}"`);
+  }, {qos: 1});
+  
+  console.log(`subscribed to ${suback.topic} w/ QoS ${suback.qos}`);
+  
+  await client.publish('winken/blinken/nod', 'foo');
 }
 ```
 
 ## API
 
-Basically it's [async-mqtt](https://npm.im/async-mqtt) except:
+Basically it's [async-mqtt](https://npm.im/async-mqtt) (which is [mqtt](https://npm.im/mqtt)) except:
 
-- Use `on(topic, [opts], handler)` to subscribe
-- Use `removeListener(topic, handler)` to unsubscribe (only if there are no more active listeners on this topic)
-- Use `emit(topic, message, [opts])` to publish
-- Listen for event `suback` if you want "subscribe" confirmation 
-- Listen for event `unsuback` if you want "unsubscribe" confirmation
-- Surprises!
+- Use `client.subscribe(topic, [opts], listener)` to *register a listener* for the topic. 
+  - `opts` are the standard options `mqtt.Client#subscribe()` supports
+  - While `mqtt.Client#subscribe()` supports an `Array` of topics, our `topic` is singular, and must be a string.
+  - Standard MQTT topic wildcards are supported, and listeners are executed first in order of specificity; i.e. `foo/bar` will take precedence over `foo/+` and `foo/+` will take precedence over `foo/#`.
+- Use `client.unsubscribe(topic, listener)` to remove the listener for the topic.
+  - This will not necessarily *unsubscribe* from the topic (at the broker level), because there may be other listeners, but it *will* remove the listener.
+- `client.end()` won't throw a fit if already disconnected
 
 ## Roadmap
 
-- [ ] Use ES modules so it can work in the browser (the whole point of this was to use it in the browser...)
-- [ ] Reconsider `emit()` `Proxy`
-- [x] Probably use [prettier](https://npm.im/prettier) 
+- [ ] Something something Rollup?
  
 ## Maintainers
 
