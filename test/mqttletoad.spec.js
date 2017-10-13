@@ -167,7 +167,7 @@ describe('mqttletoad', function() {
         );
       });
 
-      it('should execute the handler when exact matching topic received', async function() {
+      it('should execute the listener when exact matching topic received', async function() {
         return new Promise((resolve, reject) => {
           client.subscribe('foo/bar', message => {
             expect(String(message), 'to equal', 'baz');
@@ -177,7 +177,7 @@ describe('mqttletoad', function() {
         });
       });
 
-      it('should execute the handler when wildcard (#) topic received', async function() {
+      it('should execute the listener when wildcard (#) topic received', async function() {
         return new Promise((resolve, reject) => {
           client.subscribe('foo/#', message => {
             expect(String(message), 'to equal', 'quux');
@@ -187,7 +187,7 @@ describe('mqttletoad', function() {
         });
       });
 
-      it('should execute the handler when wildcard (+) topic received', async function() {
+      it('should execute the listener when wildcard (+) topic received', async function() {
         return new Promise((resolve, reject) => {
           client.subscribe('foo/+/baz', message => {
             expect(String(message), 'to equal', 'quux');
@@ -197,10 +197,28 @@ describe('mqttletoad', function() {
         });
       });
 
-      it('should always call the handler with a Buffer', async function() {
+      it('should always call the listener with a Buffer', async function() {
         return new Promise((resolve, reject) => {
           client.subscribe('foo/bar', message => {
             expect(Buffer.isBuffer(message), 'to be', true);
+            resolve();
+          });
+          client.publish('foo/bar', 'baz');
+        });
+      });
+
+      it('should always call the listener with a raw packet', function() {
+        return new Promise((resolve, reject) => {
+          client.subscribe('foo/+', (message, packet) => {
+            expect(packet, 'to satisfy', {
+              cmd: 'publish',
+              retain: false,
+              qos: 0,
+              dup: false,
+              length: 12,
+              topic: 'foo/bar',
+              payload: expect.it('when decoded as', 'utf-8', 'to equal', 'baz')
+            });
             resolve();
           });
           client.publish('foo/bar', 'baz');
