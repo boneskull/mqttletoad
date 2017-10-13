@@ -6,7 +6,7 @@
 
 > Black magic on top of MQTT.js
 
-Provides MQTT topic subscription [`EventEmitter`](https://nodejs.org/api/events.html#events_class_eventemitter)-style (with wildcards!).
+Provides MQTT topic listeners with wildcards!
 
 Also, `Promise`s.
 
