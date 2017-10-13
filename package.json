@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha 'test/*.spec.js'",
     "lint": "eslint lib test",
-    "format": "prettier-eslint 'lib/**/*.js' 'test/**/*.js'",
+    "format": "prettier-eslint --write 'lib/**/*.js' 'test/**/*.js'",
     "pretest": "npm run lint",
     "test:coverage": "nyc npm run test",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
@@ -78,7 +78,7 @@
   },
   "lint-staged": {
     "*.js": [
-      "prettier-eslint",
+      "prettier-eslint --write",
       "git add"
     ]
   }
