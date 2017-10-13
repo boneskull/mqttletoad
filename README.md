@@ -30,7 +30,7 @@ Also, `Promise`s.
 There are two (2) main issues which users of MQTT.js will quickly encounter:
 
 1.  You can't just set a listener function for a subscribed topic; you have to stuff logic into a listener on the `message` event, and figure out what to do with the topic.
-2.  Received messages are all `Buffer`s, and when publishing, your message must be a `string`, `Buffer`, or `ArrayBuffer`.
+2.  Received messages are all `Buffer`s, and when publishing, your message must be a `string`, `Buffer`.
 3. (BONUS ISSUE) It doesn't use `Promise`s, which some people prefer over callbacks.
 
 `mqttletoad` solves the *first* problem and the *third* problem.
