@@ -12,6 +12,33 @@ describe('mqttletoad', function() {
   let port;
 
   describe('connect()', function() {
+    describe('when given no arguments', function() {
+      it('should reject', async function() {
+        return expect(connect(), 'to be rejected with', /invalid/i);
+      });
+    });
+
+    describe('when given a valid connection object', function() {
+      let client;
+
+      beforeEach(async function() {
+        port = await getPort();
+        broker = await createBroker(port);
+      });
+
+      it('should fulfill', async function() {
+        const promise = connect({host: 'localhost', port, protocol: 'mqtt'});
+        client = await expect(promise, 'to be fulfilled');
+        return client.end();
+      });
+
+      afterEach(function(done) {
+        client.end().then(() => {
+          broker.close(done);
+        });
+      });
+    });
+
     describe('upon first connection', function() {
       let promise;
 
@@ -33,11 +60,6 @@ describe('mqttletoad', function() {
           'when fulfilled',
           expect.it('to be a', MqttClient)
         );
-      });
-
-      it('should not allow an invalid message to be published', async function() {
-        const client = await promise;
-        return expect(client.publish('foo/bar', new Date()), 'to be rejected');
       });
 
       it('should assign `sessionPresent` property', async function() {
@@ -97,12 +119,35 @@ describe('mqttletoad', function() {
     });
 
     describe('publish()', function() {
-      it('should reject if non-string or non-Buffer value', async function() {
-        return expect(
-          client.publish('foo', new Date()),
-          'to be rejected with',
-          TypeError
-        );
+      describe('encoder', function() {
+        describe('when passed an unknown encoder', async function() {
+          it('should reject', function() {
+            return expect(
+              client.publish('foo', 'bar', {encoder: 'foo'}),
+              'to be rejected with',
+              /unknown/i
+            );
+          });
+        });
+
+        describe('when passed a weird thing', function() {
+          it('should reject', async function() {
+            return expect(
+              client.publish('foo', 'bar', {encoder: new Date()}),
+              'to be rejected with',
+              TypeError
+            );
+          });
+        });
+
+        describe('when given a function', function() {
+          it('should fulfill', async function() {
+            return expect(
+              client.publish('foo', 'bar', {encoder: value => value}),
+              'to be fulfilled'
+            );
+          });
+        });
       });
 
       describe('default QoS (0)', function() {
@@ -229,16 +274,6 @@ describe('mqttletoad', function() {
         });
       });
 
-      it('should always call the listener with a Buffer', async function() {
-        return new Promise((resolve, reject) => {
-          client.subscribe('foo/bar', message => {
-            expect(Buffer.isBuffer(message), 'to be', true);
-            resolve();
-          });
-          client.publish('foo/bar', 'baz');
-        });
-      });
-
       it('should always call the listener with a raw packet', function() {
         return new Promise((resolve, reject) => {
           client.subscribe('foo/+', (message, packet) => {
@@ -287,6 +322,40 @@ describe('mqttletoad', function() {
         });
         await client.publish('foo/bar', 'baz', {qos: 1});
         expect(received, 'to equal', ['one', 'two']);
+      });
+    });
+
+    describe('unsubscribe()', function() {
+      describe('when multiple listeners present', function() {
+        const listenerA = () => {};
+        const listenerB = () => {};
+
+        beforeEach(async function() {
+          return Promise.all([
+            client.subscribe('foo/bar', listenerA),
+            client.subscribe('foo/bar', listenerB)
+          ]);
+        });
+
+        describe('when called with no listener', function() {
+          it('should unsubscribe from topic', async function() {
+            return expect(
+              client.unsubscribe('foo/bar'),
+              'to be fulfilled with',
+              true
+            );
+          });
+        });
+
+        describe('when called with a single listener', function() {
+          it('should not unsubscribe from topic', async function() {
+            return expect(
+              client.unsubscribe('foo/bar', listenerA),
+              'to be fulfilled with',
+              false
+            );
+          });
+        });
       });
     });
 
