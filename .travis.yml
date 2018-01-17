@@ -2,8 +2,9 @@ language: node_js
 notifications:
   email: false
 node_js:
+  - '9'
   - '8'
-  - '7'
+  - '6'
 after_success:
   - nyc report --reporter=text-lcov | node_modules/.bin/coveralls
   - npm run semantic-release
