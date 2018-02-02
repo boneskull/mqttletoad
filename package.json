@@ -58,10 +58,10 @@
     "unexpected": "^10.36.0"
   },
   "engines": {
-    "node": ">=7.0"
+    "node": ">=8.0"
   },
   "bugs": {
-    "url": "https://github.com/boneskull/mqttltoad/issues"
+    "url": "https://github.com/boneskull/mqttletoad/issues"
   },
   "directories": {
     "lib": "lib",
