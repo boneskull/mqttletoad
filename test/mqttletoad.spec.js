@@ -11,27 +11,52 @@ const path = require('path');
 
 describe('mqttletoad', function() {
   let broker;
+  let client;
   let port;
+
+  afterEach(async function() {
+    if (client) {
+      try {
+        await client.end();
+      } catch (ignored) {}
+    }
+    if (broker) {
+      try {
+        await broker.stop();
+      } catch (ignored) {}
+    }
+    client = null;
+    broker = null;
+  });
 
   describe('method', function() {
     describe('connect()', function() {
-      describe('IPC', function() {
-        let client;
+      describe('MITM', function() {
+        this.slow(200);
 
         beforeEach(async function() {
-          broker = await createBroker(
-            path.join(os.tmpdir(), `mqttletoad-${Date.now()}`)
-          );
+          broker = await createBroker({mitm: true});
         });
 
-        afterEach(function(done) {
-          client.end().then(() => {
-            broker.close(done);
+        it('should connect without port nor path', async function() {
+          client = await expect(connect({mitm: true}), 'to be fulfilled');
+        });
+      });
+
+      describe('IPC', function() {
+        this.slow(200);
+
+        beforeEach(async function() {
+          broker = await createBroker({
+            path: path.join(os.tmpdir(), `mqttletoad-${Date.now()}`)
           });
         });
 
         it('should allow connection via a path', async function() {
-          client = await connect({path: broker.port});
+          client = await expect(
+            connect({path: broker.path}),
+            'to be fulfilled'
+          );
         });
       });
 
@@ -43,27 +68,20 @@ describe('mqttletoad', function() {
         });
 
         describe('when given a valid connection object', function() {
-          let client;
-
           beforeEach(async function() {
             port = await getPort();
-            broker = await createBroker(port);
+            broker = await createBroker({port});
           });
 
           it('should fulfill', async function() {
-            const promise = connect({
-              host: 'localhost',
-              port,
-              protocol: 'mqtt'
-            });
-            client = await expect(promise, 'to be fulfilled');
-            return client.end();
-          });
-
-          afterEach(function(done) {
-            client.end().then(() => {
-              broker.close(done);
-            });
+            client = await expect(
+              connect({
+                host: 'localhost',
+                port,
+                protocol: 'mqtt'
+              }),
+              'to be fulfilled'
+            );
           });
         });
 
@@ -72,13 +90,10 @@ describe('mqttletoad', function() {
 
           beforeEach(async function() {
             port = await getPort();
-            broker = await createBroker(port);
-            promise = connect(`mqtt://localhost:${port}`);
-          });
-
-          afterEach(function(done) {
-            promise.then(client => client.end()).then(() => {
-              broker.close(done);
+            broker = await createBroker({port});
+            promise = connect(`mqtt://localhost:${port}`).then(c => {
+              client = c;
+              return c;
             });
           });
 
@@ -100,52 +115,49 @@ describe('mqttletoad', function() {
         });
 
         describe('upon subsequent connections', function() {
-          let client;
-
           beforeEach(async function() {
             port = await getPort();
-            broker = await createBroker(port);
-            client = await connect(`mqtt://localhost:${port}`);
+            broker = await createBroker({port});
+            client = await connect(`mqtt://localhost:${port}`, {
+              // reduce this so we don't have to wait 1000ms for the
+              // reconnection attempt
+              reconnectPeriod: 20
+            });
             broker.transformers.connack = _ => ({
               returnCode: 0,
               sessionPresent: true
             });
+            // kills the underlying stream, which the client
+            // interprets as a remote disconnection
             client.stream.end();
             // at this point, it should automatically reconnect
           });
 
-          afterEach(function(done) {
-            client.end().then(() => {
-              broker.close(done);
-            });
-          });
-
-          it('should update `sessionPresent` accordingly', function(done) {
-            client.once('connect', () => {
-              expect(client.sessionPresent, 'to be', true);
-              done();
-            });
+          it('should update `sessionPresent` accordingly', async function() {
+            await expect(
+              new Promise((resolve, reject) => {
+                client.once('connect', () => {
+                  resolve(client);
+                });
+              }),
+              'to be fulfilled with value satisfying',
+              {sessionPresent: true}
+            );
           });
         });
       });
     });
   });
 
-  describe('mqttletoad client', function() {
-    let client;
-    let port;
-    let broker;
+  describe('decoders & encoders', function() {
+    it('should handle custom encoders and decoders');
+  });
 
+  describe('MQTT client behavior', function() {
     beforeEach(async function() {
       port = await getPort();
-      broker = await createBroker(port);
+      broker = await createBroker({port});
       client = await connect(`mqtt://localhost:${port}`);
-    });
-
-    afterEach(function(done) {
-      client.end().then(() => {
-        broker.close(done);
-      });
     });
 
     describe('publish()', function() {
@@ -218,6 +230,10 @@ describe('mqttletoad', function() {
     });
 
     describe('subscribe()', function() {
+      describe('error recovery', function() {
+        it('should remove event listener if subscription fails');
+      });
+
       describe('invalid parameters', function() {
         describe('no parameters', function() {
           it('should reject', async function() {

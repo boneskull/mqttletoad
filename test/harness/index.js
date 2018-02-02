@@ -3,22 +3,48 @@
 const _ = require('lodash');
 const {Server} = require('net');
 const MqttConnection = require('mqtt-connection');
+const MITM = require('mitm');
+const promisify = require('promwrap');
+const stoppable = require('stoppable');
 
-class Broker extends Server {
+class BaseServer extends Server {
   constructor(listener) {
     super();
-    this.on('connection', stream => {
-      this.emit('client', new MqttConnection(stream));
-    });
+
     if (listener) {
       this.on('client', listener);
     }
   }
 }
 
-exports.Broker = Broker;
+class Broker extends BaseServer {
+  constructor(listener) {
+    super(listener);
 
-exports.createBroker = async (port, transformers = {}) => {
+    this.on('connection', sock => {
+      this.emit('client', new MqttConnection(sock));
+    });
+  }
+}
+
+class MITMBroker extends BaseServer {
+  listen(ignored, done) {
+    this.mitm = MITM();
+    this.mitm.on('connection', sock => {
+      this.emit('client', new MqttConnection(sock));
+    });
+    process.nextTick(done);
+  }
+
+  close(done) {
+    this.mitm.disable();
+    process.nextTick(done);
+  }
+}
+
+exports.Broker = BaseServer;
+
+exports.createBroker = async ({port, path, mitm, transformers = {}} = {}) => {
   transformers = _.defaults(transformers, {
     connack(...args) {
       return {returnCode: 0};
@@ -35,7 +61,8 @@ exports.createBroker = async (port, transformers = {}) => {
     pubrec: _.identity,
     publish: _.identity
   });
-  const broker = new Broker(client => {
+
+  const listener = client => {
     client
       .on('connect', (...args) => {
         client.connack(transformers.connack(...args));
@@ -70,28 +97,17 @@ exports.createBroker = async (port, transformers = {}) => {
               break;
           }
         });
-      })
-      .on('close', () => {
-        client.destroy();
-      })
-      .on('error', () => {
-        client.destroy();
-      })
-      .on('timeout', () => {
-        client.destroy();
-      })
-      .on('disconnect', () => {
-        client.destroy();
       });
-  });
+  };
+
+  const broker = stoppable(new (mitm ? MITMBroker : Broker)(listener), 0);
   broker.transformers = transformers;
   broker.port = port;
-  return new Promise((resolve, reject) => {
-    broker.listen(port, err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(broker);
-    });
+  broker.path = path;
+  const promisifiedBroker = promisify(broker, {
+    exclude: ['unref', 'address', 'ref']
   });
+
+  await promisifiedBroker.listen(port || path);
+  return promisifiedBroker;
 };
