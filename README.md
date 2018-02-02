@@ -147,6 +147,10 @@ The following functions are promisified:
 - `MqttClient#unsubscribe`
 - `MqttClient#end`
 
+### IPC Support
+
+`mqttletoad` supports connecting to an MQTT broker running on a named pipe.
+
 ## Install
 
 **Node.js v7.0.0 or greater required**.
@@ -201,6 +205,9 @@ const myfunc = async () => {
   
   // disconnect
   await client.end();
+
+  // IPC support (mqtt only; not ws)
+  const client = await toad.connect({path: '/path/to/my/named/pipe'});
 }
 ```
 

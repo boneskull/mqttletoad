@@ -85,6 +85,7 @@ exports.createBroker = async (port, transformers = {}) => {
       });
   });
   broker.transformers = transformers;
+  broker.port = port;
   return new Promise((resolve, reject) => {
     broker.listen(port, err => {
       if (err) {

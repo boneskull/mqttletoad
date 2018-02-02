@@ -6,96 +6,126 @@ const {MqttClient} = require('mqtt');
 const {connect} = require('..');
 const {createBroker} = require('./harness');
 const getPort = require('get-port');
+const os = require('os');
+const path = require('path');
 
 describe('mqttletoad', function() {
   let broker;
   let port;
 
-  describe('connect()', function() {
-    describe('when given no arguments', function() {
-      it('should reject', async function() {
-        return expect(connect(), 'to be rejected with', /invalid/i);
-      });
-    });
+  describe('method', function() {
+    describe('connect()', function() {
+      describe('IPC', function() {
+        let client;
 
-    describe('when given a valid connection object', function() {
-      let client;
-
-      beforeEach(async function() {
-        port = await getPort();
-        broker = await createBroker(port);
-      });
-
-      it('should fulfill', async function() {
-        const promise = connect({host: 'localhost', port, protocol: 'mqtt'});
-        client = await expect(promise, 'to be fulfilled');
-        return client.end();
-      });
-
-      afterEach(function(done) {
-        client.end().then(() => {
-          broker.close(done);
+        beforeEach(async function() {
+          broker = await createBroker(
+            path.join(os.tmpdir(), `mqttletoad-${Date.now()}`)
+          );
         });
-      });
-    });
 
-    describe('upon first connection', function() {
-      let promise;
+        afterEach(function(done) {
+          client.end().then(() => {
+            broker.close(done);
+          });
+        });
 
-      beforeEach(async function() {
-        port = await getPort();
-        broker = await createBroker(port);
-        promise = connect(`mqtt://localhost:${port}`);
-      });
-
-      afterEach(function(done) {
-        promise.then(client => client.end()).then(() => {
-          broker.close(done);
+        it('should allow connection via a path', async function() {
+          client = await connect({path: broker.port});
         });
       });
 
-      it('should resolve with the wrapped MqttClient once connected', async function() {
-        return expect(
-          promise,
-          'when fulfilled',
-          expect.it('to be a', MqttClient)
-        );
-      });
-
-      it('should assign `sessionPresent` property', async function() {
-        return expect(
-          promise,
-          'when fulfilled',
-          expect.it('to have property', 'sessionPresent', false)
-        );
-      });
-    });
-
-    describe('upon subsequent connections', function() {
-      let client;
-
-      beforeEach(async function() {
-        port = await getPort();
-        broker = await createBroker(port);
-        client = await connect(`mqtt://localhost:${port}`);
-        broker.transformers.connack = _ => ({
-          returnCode: 0,
-          sessionPresent: true
+      describe('TCP', function() {
+        describe('when given no arguments', function() {
+          it('should reject', async function() {
+            return expect(connect(), 'to be rejected with', /invalid/i);
+          });
         });
-        client.stream.end();
-        // at this point, it should automatically reconnect
-      });
 
-      afterEach(function(done) {
-        client.end().then(() => {
-          broker.close(done);
+        describe('when given a valid connection object', function() {
+          let client;
+
+          beforeEach(async function() {
+            port = await getPort();
+            broker = await createBroker(port);
+          });
+
+          it('should fulfill', async function() {
+            const promise = connect({
+              host: 'localhost',
+              port,
+              protocol: 'mqtt'
+            });
+            client = await expect(promise, 'to be fulfilled');
+            return client.end();
+          });
+
+          afterEach(function(done) {
+            client.end().then(() => {
+              broker.close(done);
+            });
+          });
         });
-      });
 
-      it('should update `sessionPresent` accordingly', function(done) {
-        client.once('connect', () => {
-          expect(client.sessionPresent, 'to be', true);
-          done();
+        describe('upon first connection', function() {
+          let promise;
+
+          beforeEach(async function() {
+            port = await getPort();
+            broker = await createBroker(port);
+            promise = connect(`mqtt://localhost:${port}`);
+          });
+
+          afterEach(function(done) {
+            promise.then(client => client.end()).then(() => {
+              broker.close(done);
+            });
+          });
+
+          it('should resolve with the wrapped MqttClient once connected', async function() {
+            return expect(
+              promise,
+              'when fulfilled',
+              expect.it('to be a', MqttClient)
+            );
+          });
+
+          it('should assign `sessionPresent` property', async function() {
+            return expect(
+              promise,
+              'when fulfilled',
+              expect.it('to have property', 'sessionPresent', false)
+            );
+          });
+        });
+
+        describe('upon subsequent connections', function() {
+          let client;
+
+          beforeEach(async function() {
+            port = await getPort();
+            broker = await createBroker(port);
+            client = await connect(`mqtt://localhost:${port}`);
+            broker.transformers.connack = _ => ({
+              returnCode: 0,
+              sessionPresent: true
+            });
+            client.stream.end();
+            // at this point, it should automatically reconnect
+          });
+
+          afterEach(function(done) {
+            client.end().then(() => {
+              broker.close(done);
+            });
+          });
+
+          it('should update `sessionPresent` accordingly', function(done) {
+            client.once('connect', () => {
+              expect(client.sessionPresent, 'to be', true);
+              done();
+            });
+          });
         });
       });
     });
