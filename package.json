@@ -30,7 +30,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "eventemitter2": "^4.1.2",
-    "mqtt": "^2.0.0",
+    "mqtt": "^2.15.1",
     "pify": "^3.0.0"
   },
   "files": [
