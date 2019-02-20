@@ -150,6 +150,44 @@ describe('mqttletoad', function() {
   });
 
   describe('decoders & encoders', function() {
+    let port, broker;
+    beforeEach(async function() {
+      port = await getPort();
+      broker = await createBroker({port});
+    });
+
+    describe('built-in', function() {
+      it('should publish objects as json', async function(done) {
+        let payload = {bar: 'baz'};
+        broker.transformers.publish = packet => {
+          expect(
+            packet.payload.toString(),
+            'to equal',
+            JSON.stringify(payload)
+          );
+          expect(JSON.parse(packet.payload.toString()), 'to equal', payload);
+          done();
+        };
+        let client = await connect(`mqtt://localhost:${port}`, {
+          encoder: 'json'
+        });
+        client.publish('foo', payload);
+      });
+
+      it('should receive parsed json', async function(done) {
+        let payload = {bar: 'baz'};
+        let client = await connect(`mqtt://localhost:${port}`, {
+          encoder: 'json',
+          decoder: 'json'
+        });
+        await client.subscribe('foo', message => {
+          expect(typeof message, 'to be', 'object');
+          expect(message, 'to be', payload);
+          done();
+        });
+        client.publish('foo', payload);
+      });
+    });
     it('should handle custom encoders and decoders');
   });
 
