@@ -38,8 +38,13 @@ describe('mqttletoad', function() {
           broker = await createBroker({mitm: true});
         });
 
-        it('should connect without port nor path', async function() {
-          client = await expect(connect({mitm: true}), 'to be fulfilled');
+        it('should connect without port nor path', async function(done) {
+          try {
+            client = await expect(connect({mitm: true}), 'to be fulfilled');
+          } catch (error) {
+            console.error(error);
+            done();
+          }
         });
       });
 
@@ -150,6 +155,54 @@ describe('mqttletoad', function() {
   });
 
   describe('decoders & encoders', function() {
+    let port, broker;
+    beforeEach(async function() {
+      port = await getPort();
+      broker = await createBroker({port});
+    });
+
+    describe('built-in', function() {
+      it('should publish objects as json', async function(done) {
+        try {
+          let payload = {bar: 'baz'};
+          broker.transformers.publish = packet => {
+            expect(
+              packet.payload.toString(),
+              'to equal',
+              JSON.stringify(payload)
+            );
+            expect(JSON.parse(packet.payload.toString()), 'to equal', payload);
+            done();
+          };
+          let client = await connect(`mqtt://localhost:${port}`, {
+            encoder: 'json'
+          });
+          client.publish('foo', payload);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+      it('should receive parsed json', async function(done) {
+        try {
+          let payload = {bar: 'baz'};
+          let client = await connect(`mqtt://localhost:${port}`, {
+            encoder: 'json',
+            decoder: 'json'
+          });
+          await client.subscribe('foo', message => {
+            expect(typeof message, 'to be', 'object');
+            expect(message, 'to be', payload);
+            done();
+          });
+          client.publish('foo', payload);
+        } catch (error) {
+          console.error(error);
+          expect(false, 'to be', true);
+          done();
+        }
+      });
+    });
     it('should handle custom encoders and decoders');
   });
 
